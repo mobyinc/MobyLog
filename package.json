@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev server.ts",
     "debug": "ts-node-dev --inspect --respawn server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p tsconfig.json"
   },
   "author": "James Jacoby",
   "license": "MIT",
