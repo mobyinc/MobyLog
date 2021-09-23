@@ -29,11 +29,7 @@ app.use((err, req, res, next) => {
 // Connect Database
 
 if (mongoUri) {
-  mongoose.connect(mongoUri, {
-    useCreateIndex: true,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  mongoose.connect(mongoUri);
 } else {
   throw new Error("MONGO_URI must be set");
 }
