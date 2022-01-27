@@ -69,7 +69,9 @@ router.get("/export", basicAuthMiddleware, async (req, res) => {
     'Content-Disposition': 'attachment; filename=export.csv'
   });
 
-  (Event as any).findAndStreamCsv({}).pipe(res);
+  Event.find({}).exec().then((docs) => {
+    (Event as any).csvReadStream(docs).pipe(res);
+  })
 });
 
 // Listen
