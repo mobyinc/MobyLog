@@ -74,6 +74,31 @@ router.get("/export", basicAuthMiddleware, async (req, res) => {
   })
 });
 
+router.get("/events", basicAuthMiddleware, async (req, res) => {
+  const userId = req.query.userId?.toString();
+  const eventType = req.query.eventType?.toString();
+  const name = req.query.name?.toString();
+  const query =  {};
+
+  if (userId === undefined) {
+    res.status(400);
+    res.json({ error: 'must include userId query parameter' });
+    return;
+  }
+
+  if (userId !== undefined) query['userId'] = userId;
+  if (eventType !== undefined) query['eventType'] = eventType;
+  if (name !== undefined) query['name'] = name;
+
+  Event.find(query).exec().then((docs) => {
+    res.json(docs);
+  }).catch(err => {
+    console.log(err);
+    res.status(500);
+    res.json({ error: err.toString() });
+  });
+});
+
 // Listen
 
 app.listen(port, () => {
