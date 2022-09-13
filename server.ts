@@ -7,6 +7,12 @@ import mongoose from "mongoose";
 import cors from "cors";
 import Event from './event';
 import expressBasicAuth from "express-basic-auth";
+import * as fs from 'fs';
+import AdmZip from "adm-zip";
+import sgMail = require('@sendgrid/mail');
+
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY ?? '')
 
 const port = process.env.PORT ?? 4242;
 const mongoUri = process.env.MONGO_URI ?? null;
@@ -20,11 +26,11 @@ const basicAuthMiddleware = expressBasicAuth({
 app.use(cors({ allowedHeaders: "Content-Type,Authorization" }));
 app.use(json());
 app.use(router);
+app.set("view engine", "ejs");
 app.use((err, req, res, next) => {
   res.status(500);
   res.json({ message: "unknown error" });
 });
-
 
 // Connect Database
 
@@ -64,14 +70,34 @@ router.post("/events", express.json(), async (req, res) => {
 });
 
 router.get("/export", basicAuthMiddleware, async (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/csv',
-    'Content-Disposition': 'attachment; filename=export.csv'
+  res.render('export', {
+    message: ''
+  });
+});
+
+router.post("/export", basicAuthMiddleware, express.urlencoded({extended: true}), async (req, res) => {
+  const email = req.body.email;
+  let message = '';
+
+  if (!email || email.lenngth < 4) {
+    message = 'email is required';
+  } else {
+    message = `The report will be sent to ${email} in the next few minutes.`
+    generateReport(email);
+  }
+  
+  res.render('export', {
+    message
   });
 
-  Event.find({}).exec().then((docs) => {
-    (Event as any).csvReadStream(docs).pipe(res);
-  })
+  // res.writeHead(200, {
+  //   'Content-Type': 'text/csv',
+  //   'Content-Disposition': 'attachment; filename=export.csv'
+  // });
+
+  // Event.find({}).exec().then((docs) => {
+  //   (Event as any).csvReadStream(docs).pipe(res);
+  // })
 });
 
 router.get("/events", basicAuthMiddleware, async (req, res) => {
@@ -104,3 +130,42 @@ router.get("/events", basicAuthMiddleware, async (req, res) => {
 app.listen(port, () => {
   console.log(`server is listening on port ${port}`);
 });
+
+// Generate Report
+
+const generateReport = async (email) => {
+  if (!fs.existsSync('tmp')){
+    fs.mkdirSync('tmp');
+  }
+
+  const docs = await Event.find({}).limit(10).exec();
+  const timestamp = new Date().getTime();
+  const filename = `report-${timestamp}.csv`;
+  const zipFilename = `report-${timestamp}.zip`;
+  const path = `tmp/${filename}`;
+  const ws = fs.createWriteStream(path);
+  
+  (Event as any).csvReadStream(docs).pipe(ws);
+
+  await new Promise(resolve => setTimeout(resolve, 1000)); // wait a little bit for file to exist
+
+  var zipFile = new AdmZip();
+  zipFile.addLocalFile(`${__dirname}/${path}`);
+  zipFile.writeZip(`${__dirname}/tmp/${zipFilename}`);
+
+  fs.rmSync(path);
+
+  const url = 'https://mobyinc.com';
+
+  const msg = {
+    to: email,
+    from: 'no-reply@learnortho.io',
+    subject: 'Your MobyLog report is ready',
+    text: `You may access the report here: ${url}`,
+    html: `<p>You may access the report <a href="${url}">here</a></p>`,
+  };
+
+  await sgMail.send(msg);
+
+  console.log('done!');
+};

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>Export</title>
+
+   <style>
+     body { padding:50px; }
+     .message {
+        margin: 10px 0;
+     }
+   </style>
+</head>
+<body class="container">
+    <h2>Export</h2>
+    <div class="message"><%= message %></div>
+    <form action="/export" method="POST">
+        <div>Send report to:</div><input type="text" name="email" placeholder="email address" />
+        <button type="submit">Send</button>
+    </form>
+</body>
+</header>
