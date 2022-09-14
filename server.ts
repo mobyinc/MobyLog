@@ -141,7 +141,8 @@ const generateReport = async (email) => {
     fs.mkdirSync('tmp');
   }
 
-  const docs = await Event.find({}).limit(10).exec();
+  // const docs = await Event.find({}).limit(10).exec();
+  const docs = await Event.find({}).exec();
   const timestamp = new Date().getTime();
   const filename = `report-${timestamp}.csv`;
   const zipFilename = `report-${timestamp}.zip`;
@@ -162,7 +163,7 @@ const generateReport = async (email) => {
 
   const msg = {
     to: email,
-    from: 'no-reply@learnortho.io',
+    from: 'no-reply@mobyinc.com',
     subject: 'Your MobyLog report is ready',
     text: `You may access the report here: ${url}`,
     html: `<p>You may access the report <a href="${url}">here</a></p>`,
