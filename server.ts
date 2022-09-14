@@ -27,6 +27,9 @@ app.use(cors({ allowedHeaders: "Content-Type,Authorization" }));
 app.use(json());
 app.use(router);
 app.set("view engine", "ejs");
+
+app.use('/reports', express.static(__dirname + '/reports'));
+
 app.use((err, req, res, next) => {
   res.status(500);
   res.json({ message: "unknown error" });
@@ -151,11 +154,11 @@ const generateReport = async (email) => {
 
   var zipFile = new AdmZip();
   zipFile.addLocalFile(`${__dirname}/${path}`);
-  zipFile.writeZip(`${__dirname}/tmp/${zipFilename}`);
+  zipFile.writeZip(`${__dirname}/reports/${zipFilename}`);
 
   fs.rmSync(path);
 
-  const url = 'https://mobyinc.com';
+  const url = `${process.env.PUBLIC_URL}/reports/${zipFilename}`;
 
   const msg = {
     to: email,

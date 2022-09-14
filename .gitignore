@@ -3,3 +3,4 @@
 /lib
 tmp
 .DS_Store
+*.zip
