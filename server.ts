@@ -28,7 +28,7 @@ app.use(json());
 app.use(router);
 app.set("view engine", "ejs");
 
-app.use('/reports', express.static(__dirname + '/reports'));
+app.use('/reports', express.static(process.env.STORAGE_ROOT + '/reports'));
 
 app.use((err, req, res, next) => {
   res.status(500);
