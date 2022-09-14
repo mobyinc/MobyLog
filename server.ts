@@ -141,12 +141,12 @@ const generateReport = async (email) => {
     fs.mkdirSync('tmp');
   }
 
-  // const docs = await Event.find({}).limit(10).exec();
+  const storageRoot = process.env.STORAGE_ROOT ?? './';
   const docs = await Event.find({}).exec();
   const timestamp = new Date().getTime();
   const filename = `report-${timestamp}.csv`;
   const zipFilename = `report-${timestamp}.zip`;
-  const path = `tmp/${filename}`;
+  const path = `${storageRoot}/tmp/${filename}`;
   const ws = fs.createWriteStream(path);
   
   (Event as any).csvReadStream(docs).pipe(ws);
@@ -154,8 +154,8 @@ const generateReport = async (email) => {
   await new Promise(resolve => setTimeout(resolve, 1000)); // wait a little bit for file to exist
 
   var zipFile = new AdmZip();
-  zipFile.addLocalFile(`${__dirname}/${path}`);
-  zipFile.writeZip(`${__dirname}/reports/${zipFilename}`);
+  zipFile.addLocalFile(`${storageRoot}/${path}`);
+  zipFile.writeZip(`${storageRoot}/reports/${zipFilename}`);
 
   fs.rmSync(path);
 
