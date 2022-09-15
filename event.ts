@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import mongooseToCsv from 'mongoose-to-csv';
+import mongooseToCsv from './to-csv';
 
 export interface IEvent extends Document {
   userId: string;
@@ -25,8 +25,9 @@ const EventSchema: Schema = new Schema(
 );
 
 EventSchema.plugin(mongooseToCsv, {
+  show_headers: true,
   headers: 'UserId Type Name Info Data Created',
-  constraints: {
+  alias: {
     'UserId': 'userId',
     'Type': 'eventType',
     'Name': 'name',

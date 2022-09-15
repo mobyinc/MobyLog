@@ -11,7 +11,6 @@ import * as fs from 'fs';
 import AdmZip from "adm-zip";
 import sgMail = require('@sendgrid/mail');
 
-
 sgMail.setApiKey(process.env.SENDGRID_API_KEY ?? '')
 
 const port = process.env.PORT ?? 4242;
@@ -92,15 +91,6 @@ router.post("/export", basicAuthMiddleware, express.urlencoded({extended: true})
   res.render('export', {
     message
   });
-
-  // res.writeHead(200, {
-  //   'Content-Type': 'text/csv',
-  //   'Content-Disposition': 'attachment; filename=export.csv'
-  // });
-
-  // Event.find({}).exec().then((docs) => {
-  //   (Event as any).csvReadStream(docs).pipe(res);
-  // })
 });
 
 router.get("/events", basicAuthMiddleware, async (req, res) => {
