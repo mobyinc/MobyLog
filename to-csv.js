@@ -2,7 +2,7 @@ var CsvBuilder = require("csv-builder");
 
 function new_normalizeArray_(data_row) {
   var csved_row = data_row.map((column_data) => {
-    text_data = column_data != null ? column_data.toString() : '';
+    let text_data = column_data != null ? column_data.toString() : '';
     if (this.format.delimiter === "\t") {
       text_data = text_data.replace(/\t/g, "");
     } else if (this.format.delimiter === ",") {

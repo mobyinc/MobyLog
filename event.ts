@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import mongooseToCsv from './to-csv';
+const mongooseToCsv = require('./to-csv');
 
 export interface IEvent extends Document {
   userId: string;
