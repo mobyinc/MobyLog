@@ -132,15 +132,20 @@ const generateReport = async (email) => {
   }
 
   const storageRoot = process.env.STORAGE_ROOT ?? '.';
-  const docs = await Event.find({}).exec();
   const timestamp = new Date().getTime();
   const filename = `report-${timestamp}.csv`;
   const zipFilename = `report-${timestamp}.zip`;
   const path = `${storageRoot}/tmp/${filename}`;
   const ws = fs.createWriteStream(path);
   
-  (Event as any).csvReadStream(docs).pipe(ws);
+  const stream = (Event as any).findAndStreamCsv({});
+  
+  stream.pipe(ws).on('finish', () => {
+    sendReport(path, storageRoot, zipFilename, email);
+  });
+};
 
+const sendReport = async (path, storageRoot, zipFilename, email) => {
   await new Promise(resolve => setTimeout(resolve, 1000)); // wait a little bit for file to exist
 
   var zipFile = new AdmZip();
@@ -162,4 +167,4 @@ const generateReport = async (email) => {
   await sgMail.send(msg);
 
   console.log('done!');
-};
+}
