@@ -1,3 +1,15 @@
+<% 
+let messageHtml = '';
+if (message) {
+    const alertClass = message.includes('will be sent') ? 'alert-success' : 'alert-info';
+    const iconClass = message.includes('will be sent') ? 'bi-check-circle' : 'bi-info-circle';
+    messageHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                       <i class="bi ${iconClass} me-2"></i>
+                       ${message}
+                       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                   </div>`;
+}
+%>
 <%- include('../layout', { 
     title: 'Export Data - MobyLog', 
     showNavbar: true, 
@@ -16,13 +28,7 @@
                             and sent to the specified email address.
                         </p>
                         
-                        <% if (message) { %>
-                            <div class="alert <%= message.includes('will be sent') ? 'alert-success' : 'alert-info' %> alert-dismissible fade show" role="alert">
-                                <i class="bi <%= message.includes('will be sent') ? 'bi-check-circle' : 'bi-info-circle' %> me-2"></i>
-                                <%= message %>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        <% } %>
+                        ` + messageHtml + `
                         
                         <form method="POST" action="/export">
                             <div class="mb-4">

@@ -1,22 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-   <meta charset="UTF-8">
-   <title>Export</title>
-
-   <style>
-     body { padding:50px; }
-     .message {
-        margin: 10px 0;
-     }
-   </style>
-</head>
-<body class="container">
-    <h2>Export</h2>
-    <div class="message"><%= message %></div>
-    <form action="/export" method="POST">
-        <div>Send report to:</div><input type="text" name="email" placeholder="email address" />
-        <button type="submit">Send</button>
-    </form>
-</body>
-</header>
+<% 
+let messageHtml = '';
+if (typeof message !== 'undefined' && message) {
+    messageHtml = '<div class="alert alert-info">' + message + '</div>';
+}
+%>
+<%- include('layout', { 
+    title: 'Export Data - MobyLog', 
+    showNavbar: true, 
+    admin: admin,
+    body: `
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="bi bi-download me-2"></i>Export Data</h4>
+                    </div>
+                    <div class="card-body">
+                        ` + messageHtml + `
+                        
+                        <form action="/export" method="POST">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Send report to:</label>
+                                <input type="email" 
+                                       class="form-control" 
+                                       id="email" 
+                                       name="email" 
+                                       placeholder="Enter email address" 
+                                       required>
+                                <div class="form-text">The exported data will be sent to this email address.</div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send me-2"></i>Send Export
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `
+}) %>

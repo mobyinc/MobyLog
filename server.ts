@@ -38,6 +38,7 @@ app.set('views', path.join(__dirname, 'views'));
 // Static files
 const storageRoot = process.env.STORAGE_ROOT || '.';
 app.use('/reports', express.static(path.join(storageRoot, 'reports')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
