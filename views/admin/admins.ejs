@@ -1,0 +1,128 @@
+<%- include('../layout', { 
+    title: 'Manage Admins - MobyLog', 
+    showNavbar: true, 
+    admin: admin,
+    body: `
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-people me-2"></i>Admin Management</h2>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#inviteModal">
+                <i class="bi bi-plus-circle me-2"></i>Invite New Admin
+            </button>
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="adminsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div class="modal fade" id="inviteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Invite New Admin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="inviteForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="inviteEmail" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="inviteEmail" required>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                A secure password setup link will be sent to this address. The admin will need to complete password setup before they can log in.
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-shield-check me-2 mt-1"></i>
+                                <div>
+                                    <strong>Security Notice:</strong>
+                                    <p class="mb-0 small">The invited admin will receive a secure one-time setup link that expires in 24 hours. They must create a strong password meeting all security requirements before gaining access.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="inviteError" class="alert alert-danger d-none"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success" id="inviteButton">
+                            <span id="inviteText">Send Invitation</span>
+                            <span id="inviteSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="changePasswordForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="currentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                            <div class="password-requirements mt-2">
+                                <small><i class="bi bi-shield-check me-1"></i><strong>Password Requirements:</strong></small>
+                                <ul class="mb-0 small">
+                                    <li>At least 8 characters long</li>
+                                    <li>Contains uppercase and lowercase letters</li>
+                                    <li>Contains at least one number</li>
+                                    <li>Contains at least one special character</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="passwordError" class="alert alert-danger d-none"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    `
+}) %>
+
+<script>
+    // Set the current admin ID for the external script
+    window.currentAdminId = '<%= admin._id %>';
+</script>
+<script src="/js/admin-management.js"></script>

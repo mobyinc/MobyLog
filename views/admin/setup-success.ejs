@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Password Set Up Successfully - MobyLog Admin' %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .success-card {
+            max-width: 500px;
+            margin: 3rem auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .success-header {
+            background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .success-body {
+            padding: 2rem;
+        }
+        
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card success-card">
+            <div class="success-header">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h1 class="mb-1">Password Set Up Successfully!</h1>
+                <p class="mb-0">Your admin account is now secure</p>
+            </div>
+            
+            <div class="success-body">
+                <div class="text-center mb-4">
+                    <h4 class="text-success mb-3">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Welcome to MobyLog Admin
+                    </h4>
+                    <p class="text-muted">
+                        Your password has been successfully set for <strong><%= email %></strong>.
+                        You can now log in to access your admin dashboard.
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>
+                        <strong>What's Next?</strong>
+                    </div>
+                    <ul class="mb-0">
+                        <li>Click the login button below to access your dashboard</li>
+                        <li>You can change your password anytime from the admin panel</li>
+                        <li>Your account is now secure and ready to use</li>
+                    </ul>
+                </div>
+
+                <div class="d-grid gap-2 mb-4">
+                    <a href="/admin/login" class="btn btn-primary btn-login">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Go to Login
+                    </a>
+                </div>
+
+                <hr class="my-3">
+                
+                <div class="text-center">
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-shield-fill-check me-1"></i>
+                        Your account setup is complete and secure
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-redirect to login after 10 seconds
+        let countdown = 10;
+        const countdownElement = document.createElement('p');
+        countdownElement.className = 'text-muted small text-center mt-3';
+        countdownElement.innerHTML = `<i class="bi bi-clock me-1"></i>Redirecting to login in ${countdown} seconds...`;
+        document.querySelector('.success-body').appendChild(countdownElement);
+        
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.innerHTML = `<i class="bi bi-clock me-1"></i>Redirecting to login in ${countdown} seconds...`;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                window.location.href = '/admin/login';
+            }
+        }, 1000);
+    </script>
+</body>
+</html> 

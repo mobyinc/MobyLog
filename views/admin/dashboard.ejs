@@ -1,0 +1,115 @@
+<%- include('../layout', { 
+    title: 'MobyLog Dashboard', 
+    showNavbar: true, 
+    admin: admin,
+    body: `
+    <div class="welcome-hero">
+        <div class="container text-center">
+            <h1 class="display-4 mb-3">Welcome to MobyLog Admin</h1>
+        </div>
+    </div>
+    
+    <div class="dashboard-container">
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="bi bi-download display-4 text-primary"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Export Data</h3>
+                        <p class="text-muted mb-4">Generate and email comprehensive reports of all events in CSV format.</p>
+                        <a href="/export" class="btn btn-primary">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Go to Export
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="bi bi-people display-4 text-success"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Manage Admins</h3>
+                        <p class="text-muted mb-4">Invite new admins. Control access to the system.</p>
+                        <a href="/admin/manage" class="btn btn-success">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Manage Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="bi bi-clock-history display-4 text-info"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Activity Logs</h3>
+                        <p class="text-muted mb-4">Monitor all admin activities and track system usage.</p>
+                        <a href="/admin/activity" class="btn btn-info">
+                            <i class="bi bi-arrow-right-circle me-2"></i>View Logs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Quick Stats</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h3 class="text-primary mb-1" id="adminCount">-</h3>
+                                <p class="text-muted mb-0">Active Admins</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 class="text-success mb-1" id="eventCount">-</h3>
+                                <p class="text-muted mb-0">Total Events</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h3 class="text-info mb-1" id="recentActivity">-</h3>
+                                <p class="text-muted mb-0">Activities Today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                // Get admin count
+                const adminResponse = await fetch('/admin/admins');
+                if (adminResponse.ok) {
+                    const admins = await adminResponse.json();
+                    document.getElementById('adminCount').textContent = admins.filter(a => a.isActive).length;
+                }
+                
+                // Get activity count for today
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const activityResponse = await fetch('/admin/admins/activity-logs?limit=1000');
+                if (activityResponse.ok) {
+                    const data = await activityResponse.json();
+                    const todayCount = data.logs.filter(log => new Date(log.createdAt) >= today).length;
+                    document.getElementById('recentActivity').textContent = todayCount;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        loadStats();
+    </script>
+    `
+}) %>

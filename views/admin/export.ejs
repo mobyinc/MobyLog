@@ -1,0 +1,70 @@
+<% 
+let messageHtml = '';
+if (message) {
+    const alertClass = message.includes('will be sent') ? 'alert-success' : 'alert-info';
+    const iconClass = message.includes('will be sent') ? 'bi-check-circle' : 'bi-info-circle';
+    messageHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                       <i class="bi ${iconClass} me-2"></i>
+                       ${message}
+                       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                   </div>`;
+}
+%>
+<%- include('../layout', { 
+    title: 'Export Data - MobyLog', 
+    showNavbar: true, 
+    admin: admin,
+    body: `
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-download me-2"></i>Export Event Data</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted mb-4">
+                            Generate a comprehensive CSV export of all event data. The export will be compressed 
+                            and sent to the specified email address.
+                        </p>
+                        
+                        ` + messageHtml + `
+                        
+                        <form method="POST" action="/export">
+                            <div class="mb-4">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" 
+                                       class="form-control form-control-lg" 
+                                       id="email" 
+                                       name="email" 
+                                       placeholder="recipient@example.com"
+                                       required>
+                                <div class="form-text">
+                                    The export link will be sent to this email address.
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-send me-2"></i>Generate & Send Export
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="small text-muted">
+                            <p class="mb-2"><strong>Note:</strong></p>
+                            <ul class="mb-0">
+                                <li>The export process may take a few minutes depending on data size</li>
+                                <li>The download link will expire after 24 hours</li>
+                                <li>All export requests are logged for security purposes</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `
+}) %>

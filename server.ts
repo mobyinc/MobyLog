@@ -2,54 +2,106 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import { json } from "body-parser";
+import { json, urlencoded } from "body-parser";
 import mongoose from "mongoose";
 import cors from "cors";
-import Event from './event';
-import expressBasicAuth from "express-basic-auth";
+import Event from './models/event';
 import * as fs from 'fs';
-import AdmZip from "adm-zip";
-import sgMail = require('@sendgrid/mail');
+import path from 'path';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY ?? '')
+// Import authentication components
+import { configureSession } from './config/session';
+import { seedInitialAdmin } from './utils/seedAdmin';
+import { requireAuth } from './middleware/auth';
+import { scheduleCleanup } from './utils/cleanup';
+
+// Import routes
+import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
+import exportRoutes from './routes/export';
+import downloadRoutes from './routes/download';
 
 const port = process.env.PORT ?? 4242;
 const mongoUri = process.env.MONGO_URI ?? null;
 const app = express();
-const router = express.Router();
-const basicAuthMiddleware = expressBasicAuth({
-  users: { admin: process.env.EXPORT_PASSWORD ?? 'password123!' },
-  challenge: true,
-});
 
-app.use(cors({ allowedHeaders: "Content-Type,Authorization" }));
+// Middleware setup
+app.set('trust proxy', true); // Enable proper IP extraction behind proxies
+app.use(cors({ 
+  allowedHeaders: "Content-Type,Authorization",
+  credentials: true 
+}));
 app.use(json());
-app.use(router);
+app.use(urlencoded({ extended: true }));
+
+// View engine setup
 app.set("view engine", "ejs");
+app.set('views', path.join(__dirname, 'views'));
 
-app.use('/reports', express.static(process.env.STORAGE_ROOT + '/reports'));
+// Static files
+const storageRoot = process.env.STORAGE_ROOT || '.';
+app.use('/reports', express.static(path.join(storageRoot, 'reports')));
+app.use(express.static(path.join(__dirname, 'public')));
 
+// Error handling middleware
 app.use((err, req, res, next) => {
+  console.error('Error:', err);
   res.status(500);
-  res.json({ message: "unknown error" });
+  res.json({ message: "Internal server error" });
 });
 
 // Connect Database
-
 if (mongoUri) {
-  mongoose.connect(mongoUri);
+  mongoose.connect(mongoUri).then(async () => {
+    console.log('Connected to MongoDB');
+    
+    // Seed initial admin after database connection
+    await seedInitialAdmin();
+  }).catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 } else {
   throw new Error("MONGO_URI must be set");
 }
 
-// Routes
+// Session configuration (must be after database connection is established)
+app.use(configureSession(mongoUri));
 
-router.get("", (req, res) => {
-  // health-check, server is running
-  return res.send("hello!");
+// Authentication routes (public)
+app.use('/auth', authRoutes);
+
+// Admin login page (public)
+app.get('/admin/login', (req, res) => {
+  res.render('admin/login');
 });
 
-router.post("/events", express.json(), async (req, res) => {
+// Root route - Welcome dashboard (protected)
+app.get('/', requireAuth, (req, res) => {
+  res.render('admin/dashboard', { admin: req.admin });
+});
+
+// Protected routes
+app.use('/export', requireAuth, exportRoutes);
+app.use('/admin/admins', requireAuth, adminRoutes);
+
+// Public download routes (token-based security)
+app.use('/download', downloadRoutes);
+
+// Admin management page
+app.get('/admin/manage', requireAuth, (req, res) => {
+  res.render('admin/admins', { admin: req.admin });
+});
+
+// Activity logs page
+app.get('/admin/activity', requireAuth, async (req, res) => {
+  res.render('admin/activity', { admin: req.admin });
+});
+
+// API Routes
+
+// Events API endpoint (protected)
+app.post("/events", express.json(), async (req, res) => {
   const event = {
     userId: null,
     eventType: null,
@@ -71,33 +123,12 @@ router.post("/events", express.json(), async (req, res) => {
   res.status(201).end();
 });
 
-router.get("/export", basicAuthMiddleware, async (req, res) => {
-  res.render('export', {
-    message: ''
-  });
-});
-
-router.post("/export", basicAuthMiddleware, express.urlencoded({extended: true}), async (req, res) => {
-  const email = req.body.email;
-  let message = '';
-
-  if (!email || email.lenngth < 4) {
-    message = 'email is required';
-  } else {
-    message = `The report will be sent to ${email} in the next few minutes.`
-    generateReport(email);
-  }
-  
-  res.render('export', {
-    message
-  });
-});
-
-router.get("/events", basicAuthMiddleware, async (req, res) => {
+// Get events (protected)
+app.get("/events", requireAuth, async (req, res) => {
   const userId = req.query.userId?.toString();
   const eventType = req.query.eventType?.toString();
   const name = req.query.name?.toString();
-  const query =  {};
+  const query: any = {};
 
   if (userId === undefined) {
     res.status(400);
@@ -118,53 +149,21 @@ router.get("/events", basicAuthMiddleware, async (req, res) => {
   });
 });
 
-// Listen
-
-app.listen(port, () => {
-  console.log(`server is listening on port ${port}`);
+// Redirect unauthenticated users to login
+app.use((req, res, next) => {
+  if (!req.session?.adminId) {
+    return res.redirect('/admin/login');
+  }
+  next();
 });
 
-// Generate Report
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
-const generateReport = async (email) => {
-  if (!fs.existsSync('tmp')){
-    fs.mkdirSync('tmp');
-  }
-
-  const storageRoot = process.env.STORAGE_ROOT ?? '.';
-  const timestamp = new Date().getTime();
-  const filename = `report-${timestamp}.csv`;
-  const zipFilename = `report-${timestamp}.zip`;
-  const path = `${storageRoot}/tmp/${filename}`;
-  const ws = fs.createWriteStream(path);
-  
-  const stream = (Event as any).findAndStreamCsv({});
-  
-  stream.pipe(ws).on('finish', () => {
-    sendReport(path, storageRoot, zipFilename, email);
-  });
-};
-
-const sendReport = async (path, storageRoot, zipFilename, email) => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // wait a little bit for file to exist
-
-  var zipFile = new AdmZip();
-  zipFile.addLocalFile(path);
-  zipFile.writeZip(`${storageRoot}/reports/${zipFilename}`);
-
-  fs.rmSync(path);
-
-  const url = `${process.env.PUBLIC_URL}/reports/${zipFilename}`;
-
-  const msg = {
-    to: email,
-    from: 'no-reply@mobyinc.com',
-    subject: 'Your MobyLog report is ready',
-    text: `You may access the report here: ${url}`,
-    html: `<p>You may access the report <a href="${url}">here</a></p>`,
-  };
-
-  await sgMail.send(msg);
-
-  console.log('done!');
-}
+// Listen
+app.listen(port, () => {
+  console.log(`server is listening on port ${port}`);
+  scheduleCleanup(); // Start the cleanup scheduler
+});
