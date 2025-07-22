@@ -27,6 +27,77 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   }
 }
 
+export async function sendPasswordSetupEmail(email: string, setupToken: string, isInvite: boolean = false): Promise<void> {
+  const baseUrl = process.env.PUBLIC_URL || 'http://localhost:4242';
+  const setupUrl = `${baseUrl}/auth/setup-password/${setupToken}`;
+  
+  const subject = isInvite ? 'Welcome to MobyLog Admin - Set Up Your Password' : 'Reset Your MobyLog Admin Password';
+  const action = isInvite ? 'set up your password' : 'reset your password';
+  const welcomeText = isInvite ? 'Welcome to MobyLog Admin! Your admin account has been created.' : 'You have requested to reset your MobyLog admin password.';
+  
+  await sendEmail({
+    to: email,
+    subject,
+    text: `${welcomeText}\n\nTo complete your account setup and ${action}, please click the secure link below:\n\n${setupUrl}\n\nThis link will expire in 24 hours for security purposes.\n\nIf you did not request this ${isInvite ? 'invitation' : 'password reset'}, please contact your system administrator immediately.`,
+    html: `
+      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">MobyLog Admin</h1>
+        </div>
+        
+        <div style="padding: 30px; background-color: #f8f9fa;">
+          <h2 style="color: #495057; margin-top: 0;">${isInvite ? 'Welcome!' : 'Password Reset Request'}</h2>
+          <p style="font-size: 16px; margin-bottom: 25px;">${welcomeText}</p>
+          
+          <p style="font-size: 16px; margin-bottom: 25px;">
+            To complete your account setup and ${action}, please click the secure button below:
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${setupUrl}" style="background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
+              ${isInvite ? 'Set Up Password' : 'Reset Password'}
+            </a>
+          </div>
+          
+          <div style="background-color: #e9ecef; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h4 style="color: #6c757d; margin-top: 0; margin-bottom: 15px;">
+              <i style="color: #ffc107;">⚠️</i> Security Information:
+            </h4>
+            <ul style="color: #6c757d; margin-bottom: 0; padding-left: 20px;">
+              <li>This secure link will expire in 24 hours</li>
+              <li>You will be required to create a strong password</li>
+              <li>Access is tracked for security purposes</li>
+              <li>Do not share this link with others</li>
+            </ul>
+          </div>
+          
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">
+              <strong>Password Requirements:</strong>
+            </p>
+            <ul style="color: #6c757d; font-size: 14px; margin-bottom: 20px; padding-left: 20px;">
+              <li>At least 8 characters long</li>
+              <li>Contains uppercase and lowercase letters</li>
+              <li>Contains at least one number</li>
+              <li>Contains at least one special character</li>
+            </ul>
+          </div>
+          
+          <p style="color: #6c757d; font-size: 14px; margin-top: 30px;">
+            <em>If you did not request this ${isInvite ? 'invitation' : 'password reset'}, please contact your system administrator immediately.</em>
+          </p>
+        </div>
+        
+        <div style="background-color: #343a40; color: #adb5bd; padding: 20px; text-align: center; font-size: 14px;">
+          <p style="margin: 0;">© 2024 MobyLog. All rights reserved.</p>
+          <p style="margin: 5px 0 0 0;">This is an automated message, please do not reply.</p>
+        </div>
+      </div>
+    `
+  });
+}
+
+// Legacy functions - deprecated but kept for backwards compatibility
 export async function sendWelcomeEmail(email: string, password: string): Promise<void> {
   const loginUrl = process.env.PUBLIC_URL || 'http://localhost:4242';
   

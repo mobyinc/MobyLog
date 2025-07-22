@@ -4,7 +4,7 @@ import Admin from '../models/admin';
 import ActivityLog from '../models/activityLog';
 import { requireAuth } from '../middleware/auth';
 import { generateRandomPassword } from '../utils/auth';
-import { sendWelcomeEmail, sendPasswordResetEmail } from '../utils/email';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordSetupEmail } from '../utils/email';
 import { logActivity } from '../utils/logger';
 
 const router = Router();
@@ -39,23 +39,25 @@ router.post('/invite', requireAuth, [
       return res.status(400).json({ error: 'Admin with this email already exists' });
     }
 
-    // Generate random password
-    const password = generateRandomPassword();
-
-    // Create new admin
+    // Create new admin without password (will be set via setup link)
     const newAdmin = new Admin({
       email: email.toLowerCase(),
-      password
+      needsPasswordSetup: true,
+      isActive: true
     });
 
+    // Generate password setup token
+    const setupToken = newAdmin.generatePasswordSetupToken();
     await newAdmin.save();
 
-    // Send welcome email
+    // Send password setup email
     try {
-      await sendWelcomeEmail(newAdmin.email, password);
+      await sendPasswordSetupEmail(newAdmin.email, setupToken, true);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
-      // Continue anyway - admin can reset password
+      console.error('Failed to send password setup email:', emailError);
+      // Remove the admin if email fails since they can't complete setup
+      await Admin.findByIdAndDelete(newAdmin._id);
+      return res.status(500).json({ error: 'Failed to send invitation email. Please try again.' });
     }
 
     // Log activity
@@ -63,7 +65,7 @@ router.post('/invite', requireAuth, [
       adminId: invitingAdmin._id,
       adminEmail: invitingAdmin.email,
       action: 'ADMIN_INVITED',
-      details: `Invited new admin: ${newAdmin.email}`,
+      details: `Invited new admin: ${newAdmin.email} (password setup required)`,
       targetAdminId: newAdmin._id,
       targetAdminEmail: newAdmin.email,
       success: true,
@@ -71,10 +73,11 @@ router.post('/invite', requireAuth, [
     });
 
     res.status(201).json({
-      message: 'Admin invited successfully',
+      message: 'Admin invitation sent successfully',
       admin: {
         id: newAdmin._id,
         email: newAdmin.email,
+        needsPasswordSetup: true,
         createdAt: newAdmin.createdAt
       }
     });
@@ -142,24 +145,23 @@ router.post('/:adminId/reset-password', requireAuth, async (req: Request, res: R
       return res.status(404).json({ error: 'Admin not found' });
     }
 
-    // Generate new password
-    const newPassword = generateRandomPassword();
-
-    // Update password and unlock account
-    adminToReset.password = newPassword;
+    // Generate password setup token instead of new password
+    const setupToken = adminToReset.generatePasswordSetupToken();
+    
+    // Unlock account
     adminToReset.loginAttempts = 0;
     adminToReset.lockUntil = undefined;
     adminToReset.isLocked = false;
+    
     await adminToReset.save();
 
-    // Send password reset email
+    // Send password setup email
     try {
-      await sendPasswordResetEmail(adminToReset.email, newPassword);
+      await sendPasswordSetupEmail(adminToReset.email, setupToken, false);
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
-      // Return password in response as fallback
-      return res.json({
-        message: 'Password reset successfully but email failed to send'
+      console.error('Failed to send password setup email:', emailError);
+      return res.status(500).json({
+        error: 'Failed to send password reset email. Please try again.'
       });
     }
 
@@ -167,15 +169,15 @@ router.post('/:adminId/reset-password', requireAuth, async (req: Request, res: R
     await logActivity({
       adminId: requestingAdmin._id,
       adminEmail: requestingAdmin.email,
-      action: 'PASSWORD_RESET',
-      details: `Reset password for admin: ${adminToReset.email}`,
+      action: 'PASSWORD_RESET_INITIATED',
+      details: `Password reset initiated for admin: ${adminToReset.email}`,
       targetAdminId: adminToReset._id,
       targetAdminEmail: adminToReset.email,
       success: true,
       req
     });
 
-    res.json({ message: 'Password reset successfully and sent via email' });
+    res.json({ message: 'Password reset link sent successfully via email' });
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ error: 'Internal server error' });

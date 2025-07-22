@@ -1,73 +1,65 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const currentAdminId = window.currentAdminId; // Will be set by the EJS template
-    let admins = [];
+    const currentAdminId = window.currentAdminId;
 
     async function loadAdmins() {
         try {
             const response = await fetch('/admin/admins');
-            if (response.ok) {
-                admins = await response.json();
-                renderAdmins();
-            }
+            const admins = await response.json();
+            renderAdmins(admins);
         } catch (error) {
-            console.error('Error loading admins:', error);
+            console.error('Failed to load admins:', error);
         }
     }
 
-    function renderAdmins() {
+    function renderAdmins(admins) {
         const tbody = document.querySelector('#adminsTable tbody');
-        
-        // Clear existing content
         tbody.innerHTML = '';
-        
-        if (admins.length === 0) {
-            const row = tbody.insertRow();
-            const cell = row.insertCell();
-            cell.colSpan = 5;
-            cell.className = 'text-center py-4';
-            cell.textContent = 'No admins found';
-            return;
-        }
 
         admins.forEach(admin => {
-            const row = tbody.insertRow();
+            const row = document.createElement('tr');
             
-            // Email cell with "You" badge
-            const emailCell = row.insertCell();
-            emailCell.textContent = admin.email; // Safe text content
+            // Email
+            const emailCell = document.createElement('td');
+            emailCell.textContent = admin.email;
+            row.appendChild(emailCell);
             
-            if (admin._id === currentAdminId) {
-                const badge = document.createElement('span');
-                badge.className = 'badge bg-primary ms-2';
-                badge.textContent = 'You';
-                emailCell.appendChild(badge);
+            // Status
+            const statusCell = document.createElement('td');
+            const statusBadge = document.createElement('span');
+            
+            if (admin.needsPasswordSetup) {
+                statusBadge.className = 'badge bg-warning text-dark';
+                statusBadge.innerHTML = '<i class="bi bi-clock me-1"></i>Setup Pending';
+            } else if (admin.isLocked) {
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.innerHTML = '<i class="bi bi-lock me-1"></i>Locked';
+            } else if (!admin.isActive) {
+                statusBadge.className = 'badge bg-secondary';
+                statusBadge.innerHTML = '<i class="bi bi-pause me-1"></i>Inactive';
+            } else {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Active';
             }
             
-            // Status cell with badges
-            const statusCell = row.insertCell();
+            statusCell.appendChild(statusBadge);
+            row.appendChild(statusCell);
             
-            const activeBadge = document.createElement('span');
-            activeBadge.className = admin.isActive ? 'badge bg-success' : 'badge bg-danger';
-            activeBadge.textContent = admin.isActive ? 'Active' : 'Inactive';
-            statusCell.appendChild(activeBadge);
-            
-            if (admin.isLocked) {
-                const lockedBadge = document.createElement('span');
-                lockedBadge.className = 'badge bg-warning ms-1';
-                lockedBadge.textContent = 'Locked';
-                statusCell.appendChild(lockedBadge);
+            // Last Login
+            const lastLoginCell = document.createElement('td');
+            if (admin.lastLogin) {
+                lastLoginCell.textContent = new Date(admin.lastLogin).toLocaleString();
+            } else {
+                lastLoginCell.innerHTML = '<span class="text-muted">Never</span>';
             }
+            row.appendChild(lastLoginCell);
             
-            // Last Login cell
-            const loginCell = row.insertCell();
-            loginCell.textContent = admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never';
+            // Created
+            const createdCell = document.createElement('td');
+            createdCell.textContent = new Date(admin.createdAt).toLocaleString();
+            row.appendChild(createdCell);
             
-            // Created cell
-            const createdCell = row.insertCell();
-            createdCell.textContent = new Date(admin.createdAt).toLocaleDateString();
-            
-            // Actions cell
-            const actionsCell = row.insertCell();
+            // Actions
+            const actionsCell = document.createElement('td');
             actionsCell.className = 'text-end';
             
             if (admin._id === currentAdminId) {
@@ -86,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const resetBtn = document.createElement('button');
                 resetBtn.className = 'btn btn-outline-warning';
                 resetBtn.innerHTML = '<i class="bi bi-key"></i> Reset';
+                resetBtn.title = 'Send password reset link';
                 resetBtn.addEventListener('click', () => resetPassword(admin._id));
                 btnGroup.appendChild(resetBtn);
                 
@@ -107,6 +100,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 actionsCell.appendChild(btnGroup);
             }
+            
+            row.appendChild(actionsCell);
+            tbody.appendChild(row);
         });
     }
 
@@ -136,7 +132,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 bootstrap.Modal.getInstance(document.getElementById('inviteModal')).hide();
                 document.getElementById('inviteEmail').value = '';
                 loadAdmins();
-                alert('Invitation sent successfully!');
+                
+                // Show success message with more detail
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px;';
+                alert.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill me-2 mt-1"></i>
+                        <div>
+                            <strong>Invitation Sent Successfully!</strong>
+                            <p class="mb-0 small">A secure password setup link has been sent to ${email}. They have 24 hours to complete their account setup.</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                document.body.appendChild(alert);
+                
+                // Auto-remove after 8 seconds
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 8000);
             } else {
                 const data = await response.json();
                 error.textContent = data.error || 'Failed to send invitation';
@@ -191,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Admin Actions
     window.resetPassword = async function(adminId) {
-        if (!confirm('Are you sure you want to reset this admin\'s password?')) return;
+        if (!confirm('Are you sure you want to send a password reset link to this admin? They will need to create a new password using the secure link.')) return;
         
         try {
             const response = await fetch('/admin/admins/' + adminId + '/reset-password', {
@@ -199,15 +217,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (response.ok) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px;';
+                alert.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill me-2 mt-1"></i>
+                        <div>
+                            <strong>Password Reset Link Sent!</strong>
+                            <p class="mb-0 small">A secure password reset link has been sent to the admin's email. The link expires in 24 hours.</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                document.body.appendChild(alert);
+                
+                // Auto-remove after 6 seconds
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 6000);
+                
+                loadAdmins();
+            } else {
                 const data = await response.json();
-                if (data.temporaryPassword) {
-                    alert('Password reset. Temporary password: ' + data.temporaryPassword + '\n\nPlease share this securely with the admin.');
-                } else {
-                    alert('Password reset successfully and sent via email.');
-                }
+                alert('Failed to send password reset link: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
-            alert('Failed to reset password');
+            alert('Failed to send password reset link');
         }
     };
 

@@ -52,7 +52,19 @@
                         <div class="mb-3">
                             <label for="inviteEmail" class="form-label">Email Address</label>
                             <input type="email" class="form-control" id="inviteEmail" required>
-                            <div class="form-text">An email with login credentials will be sent to this address.</div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                A secure password setup link will be sent to this address. The admin will need to complete password setup before they can log in.
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-shield-check me-2 mt-1"></i>
+                                <div>
+                                    <strong>Security Notice:</strong>
+                                    <p class="mb-0 small">The invited admin will receive a secure one-time setup link that expires in 24 hours. They must create a strong password meeting all security requirements before gaining access.</p>
+                                </div>
+                            </div>
                         </div>
                         <div id="inviteError" class="alert alert-danger d-none"></div>
                     </div>
@@ -86,13 +98,12 @@
                             <label for="newPassword" class="form-label">New Password</label>
                             <input type="password" class="form-control" id="newPassword" required>
                             <div class="password-requirements mt-2">
-                                <small>Password must contain:</small>
-                                <ul class="mb-0">
-                                    <li>At least 8 characters</li>
-                                    <li>One uppercase letter</li>
-                                    <li>One lowercase letter</li>
-                                    <li>One number</li>
-                                    <li>One special character</li>
+                                <small><i class="bi bi-shield-check me-1"></i><strong>Password Requirements:</strong></small>
+                                <ul class="mb-0 small">
+                                    <li>At least 8 characters long</li>
+                                    <li>Contains uppercase and lowercase letters</li>
+                                    <li>Contains at least one number</li>
+                                    <li>Contains at least one special character</li>
                                 </ul>
                             </div>
                         </div>
@@ -106,6 +117,7 @@
             </div>
         </div>
     </div>
+    
     `
 }) %>
 

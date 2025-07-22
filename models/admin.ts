@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 
 export interface IAdmin extends Document {
   email: string;
-  password: string;
+  password?: string; // Optional since new admins won't have password initially
   isActive: boolean;
   isLocked: boolean;
   loginAttempts: number;
@@ -11,12 +11,18 @@ export interface IAdmin extends Document {
   lastLogin?: Date;
   resetToken?: string;
   resetTokenExpiry?: Date;
+  passwordSetupToken?: string;
+  passwordSetupTokenExpiry?: Date;
+  needsPasswordSetup: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   isAccountLocked(): boolean;
   incLoginAttempts(): Promise<void>;
   resetLoginAttempts(): Promise<void>;
+  generatePasswordSetupToken(): string;
+  clearPasswordSetupToken(): void;
+  isPasswordSetupTokenValid(token: string): boolean;
 }
 
 const AdminSchema: Schema = new Schema(
@@ -31,7 +37,7 @@ const AdminSchema: Schema = new Schema(
     },
     password: { 
       type: String, 
-      required: true 
+      required: false // Not required initially for new admins
     },
     isActive: { 
       type: Boolean, 
@@ -56,6 +62,16 @@ const AdminSchema: Schema = new Schema(
     },
     resetTokenExpiry: { 
       type: Date 
+    },
+    passwordSetupToken: {
+      type: String
+    },
+    passwordSetupTokenExpiry: {
+      type: Date
+    },
+    needsPasswordSetup: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -72,8 +88,8 @@ AdminSchema.virtual('isCurrentlyLocked').get(function(this: IAdmin) {
 AdminSchema.pre('save', async function(next) {
   const admin = this as IAdmin;
   
-  // Only hash the password if it has been modified (or is new)
-  if (!admin.isModified('password')) return next();
+  // Only hash the password if it has been modified (or is new) and exists
+  if (!admin.isModified('password') || !admin.password) return next();
   
   try {
     const salt = await bcrypt.genSalt(10);
@@ -87,6 +103,7 @@ AdminSchema.pre('save', async function(next) {
 // Method to compare password
 AdminSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   try {
+    if (!this.password) return false; // No password set yet
     return await bcrypt.compare(candidatePassword, this.password);
   } catch (error) {
     return false;
@@ -126,6 +143,31 @@ AdminSchema.methods.resetLoginAttempts = async function(): Promise<void> {
   this.isLocked = false;
   this.lastLogin = new Date();
   await this.save();
+};
+
+// Method to generate password setup token
+AdminSchema.methods.generatePasswordSetupToken = function(): string {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  this.passwordSetupToken = token;
+  this.passwordSetupTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  this.needsPasswordSetup = true;
+  return token;
+};
+
+// Method to clear password setup token
+AdminSchema.methods.clearPasswordSetupToken = function(): void {
+  this.passwordSetupToken = undefined;
+  this.passwordSetupTokenExpiry = undefined;
+  this.needsPasswordSetup = false;
+};
+
+// Method to validate password setup token
+AdminSchema.methods.isPasswordSetupTokenValid = function(token: string): boolean {
+  return !!(this.passwordSetupToken && 
+           this.passwordSetupToken === token && 
+           this.passwordSetupTokenExpiry && 
+           this.passwordSetupTokenExpiry > new Date());
 };
 
 export default mongoose.model<IAdmin>("Admin", AdminSchema);

@@ -1,6 +1,6 @@
 import Admin from '../models/admin';
 import { generateRandomPassword } from './auth';
-import { sendWelcomeEmail } from './email';
+import { sendWelcomeEmail, sendPasswordSetupEmail } from './email';
 
 export async function seedInitialAdmin() {
   try {
@@ -15,30 +15,37 @@ export async function seedInitialAdmin() {
     // Get initial admin email from environment or use default
     const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@mobyinc.com';
     
-    // Generate a strong random password
-    const password = generateRandomPassword();
-    
-    // Create the initial admin
+    // Create the initial admin without password (will be set via setup link)
     const admin = new Admin({
       email: initialEmail.toLowerCase(),
-      password
+      needsPasswordSetup: true,
+      isActive: true
     });
     
+    // Generate password setup token
+    const setupToken = admin.generatePasswordSetupToken();
     await admin.save();
     
     console.log(`Initial admin created: ${initialEmail}`);
     
-    // Send welcome email with credentials
+    // Send password setup email
     try {
-      await sendWelcomeEmail(admin.email, password);
-      console.log('Welcome email sent successfully');
-    } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      await sendPasswordSetupEmail(admin.email, setupToken, true);
+      console.log('Password setup email sent successfully');
       console.log(`\n===== IMPORTANT =====`);
-      console.log(`Initial admin credentials:`);
+      console.log(`Initial admin setup:`);
       console.log(`Email: ${admin.email}`);
-      console.log(`Password: ${password}`);
-      console.log(`Please save these credentials securely!`);
+      console.log(`A password setup link has been sent to the admin email.`);
+      console.log(`The admin must complete password setup before first login.`);
+      console.log(`=====================\n`);
+    } catch (emailError) {
+      console.error('Failed to send password setup email:', emailError);
+      console.log(`\n===== IMPORTANT =====`);
+      console.log(`Initial admin created but email failed:`);
+      console.log(`Email: ${admin.email}`);
+      console.log(`Setup Token: ${setupToken}`);
+      console.log(`Manual setup URL: ${process.env.PUBLIC_URL || 'http://localhost:4242'}/auth/setup-password/${setupToken}`);
+      console.log(`Please provide this setup link to the admin securely!`);
       console.log(`=====================\n`);
     }
   } catch (error) {

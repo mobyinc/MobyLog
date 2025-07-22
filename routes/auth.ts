@@ -4,7 +4,7 @@ import Admin from '../models/admin';
 import { generateToken, requireAuth } from '../middleware/auth';
 import { validatePassword, generateRandomPassword } from '../utils/auth';
 import { logActivity } from '../utils/logger';
-import { sendPasswordResetEmail } from '../utils/email';
+import { sendPasswordResetEmail, sendPasswordSetupEmail } from '../utils/email';
 
 const router = Router();
 
@@ -35,6 +35,22 @@ router.post('/login', [
         req
       });
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check if admin needs to set up password
+    if (admin.needsPasswordSetup || !admin.password) {
+      await logActivity({
+        adminId: admin._id,
+        adminEmail: admin.email,
+        action: 'LOGIN_FAILED',
+        details: 'Login attempt on account requiring password setup',
+        success: false,
+        req
+      });
+      return res.status(403).json({ 
+        error: 'Account setup required. Please check your email for the password setup link.',
+        needsPasswordSetup: true
+      });
     }
 
     // Check if account is locked
@@ -212,6 +228,168 @@ router.post('/change-password', requireAuth, [
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Password setup page (GET)
+router.get('/setup-password/:token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    if (!token) {
+      return res.status(400).render('error', {
+        title: 'Invalid Link',
+        message: 'Password setup token is required.',
+        showNavbar: false
+      });
+    }
+
+    // Find admin with valid setup token
+    const admin = await Admin.findOne({
+      passwordSetupToken: token,
+      passwordSetupTokenExpiry: { $gt: new Date() }
+    });
+
+    if (!admin) {
+      return res.status(404).render('error', {
+        title: 'Invalid or Expired Link',
+        message: 'This password setup link is invalid or has expired. Please request a new invitation or password reset.',
+        showNavbar: false
+      });
+    }
+
+    // Render password setup form
+    res.render('admin/setup-password', {
+      token,
+      email: admin.email,
+      title: 'Set Up Your Password - MobyLog Admin',
+      showNavbar: false
+    });
+    
+  } catch (error) {
+    console.error('Password setup page error:', error);
+    res.status(500).render('error', {
+      title: 'Server Error',
+      message: 'An error occurred while loading the password setup page.',
+      showNavbar: false
+    });
+  }
+});
+
+// Password setup submission (POST)
+router.post('/setup-password/:token', [
+  body('password').notEmpty().withMessage('Password is required'),
+  body('confirmPassword').notEmpty().withMessage('Password confirmation is required')
+], async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!token) {
+      return res.status(400).render('admin/setup-password', {
+        token: '',
+        email: '',
+        error: 'Invalid setup token.',
+        title: 'Set Up Your Password - MobyLog Admin',
+        showNavbar: false
+      });
+    }
+
+    // Find admin with valid setup token
+    const admin = await Admin.findOne({
+      passwordSetupToken: token,
+      passwordSetupTokenExpiry: { $gt: new Date() }
+    });
+
+    if (!admin) {
+      return res.status(404).render('error', {
+        title: 'Invalid or Expired Link',
+        message: 'This password setup link is invalid or has expired. Please request a new invitation or password reset.',
+        showNavbar: false
+      });
+    }
+
+    // Handle validation errors
+    if (!errors.isEmpty()) {
+      return res.status(400).render('admin/setup-password', {
+        token,
+        email: admin.email,
+        error: errors.array().map(err => err.msg).join(', '),
+        title: 'Set Up Your Password - MobyLog Admin',
+        showNavbar: false
+      });
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).render('admin/setup-password', {
+        token,
+        email: admin.email,
+        error: 'Passwords do not match.',
+        title: 'Set Up Your Password - MobyLog Admin',
+        showNavbar: false
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).render('admin/setup-password', {
+        token,
+        email: admin.email,
+        error: passwordValidation.message,
+        title: 'Set Up Your Password - MobyLog Admin',
+        showNavbar: false
+      });
+    }
+
+    // Set password and clear setup token
+    admin.password = password;
+    admin.clearPasswordSetupToken();
+    
+    // Unlock account in case it was locked
+    admin.loginAttempts = 0;
+    admin.lockUntil = undefined;
+    admin.isLocked = false;
+    
+    await admin.save();
+
+    // Log password setup activity
+    await logActivity({
+      adminId: admin._id,
+      adminEmail: admin.email,
+      action: 'PASSWORD_SETUP_COMPLETED',
+      details: `Password successfully set up`,
+      success: true,
+      req
+    });
+
+    // Render success page with login link
+    res.render('admin/setup-success', {
+      email: admin.email,
+      title: 'Password Set Up Successfully - MobyLog Admin',
+      showNavbar: false
+    });
+
+  } catch (error) {
+    console.error('Password setup error:', error);
+    
+    const { token } = req.params;
+    let email = '';
+    
+    try {
+      const admin = await Admin.findOne({ passwordSetupToken: token });
+      email = admin?.email || '';
+    } catch {}
+
+    res.status(500).render('admin/setup-password', {
+      token,
+      email,
+      error: 'An error occurred while setting up your password. Please try again.',
+      title: 'Set Up Your Password - MobyLog Admin',
+      showNavbar: false
+    });
   }
 });
 

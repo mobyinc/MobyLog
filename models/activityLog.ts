@@ -38,6 +38,8 @@ const ActivityLogSchema: Schema = new Schema(
         'ADMIN_INVITED',
         'ADMIN_REMOVED',
         'PASSWORD_RESET',
+        'PASSWORD_RESET_INITIATED',
+        'PASSWORD_SETUP_COMPLETED',
         'PASSWORD_CHANGED',
         'PASSWORD_CHANGE_FAILED',
         'EXPORT_REQUESTED',
