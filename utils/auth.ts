@@ -41,18 +41,24 @@ export function generateRandomPassword(length: number = 12): string {
   let password = '';
   
   // Ensure at least one character from each category
-  password += uppercase[Math.floor(Math.random() * uppercase.length)];
-  password += lowercase[Math.floor(Math.random() * lowercase.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += specials[Math.floor(Math.random() * specials.length)];
+  password += uppercase[crypto.randomInt(0, uppercase.length)];
+  password += lowercase[crypto.randomInt(0, lowercase.length)];
+  password += numbers[crypto.randomInt(0, numbers.length)];
+  password += specials[crypto.randomInt(0, specials.length)];
 
   // Fill the rest randomly
   for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
+    password += allChars[crypto.randomInt(0, allChars.length)];
   }
 
-  // Shuffle the password
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+  // Shuffle the password using Fisher-Yates algorithm with crypto.randomInt
+  const passwordArray = password.split('');
+  for (let i = passwordArray.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
+  }
+
+  return passwordArray.join('');
 }
 
 // Generate a secure reset token

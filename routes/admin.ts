@@ -159,8 +159,7 @@ router.post('/:adminId/reset-password', requireAuth, async (req: Request, res: R
       console.error('Failed to send password reset email:', emailError);
       // Return password in response as fallback
       return res.json({
-        message: 'Password reset successfully but email failed to send',
-        temporaryPassword: newPassword
+        message: 'Password reset successfully but email failed to send'
       });
     }
 

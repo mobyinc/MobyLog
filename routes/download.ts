@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import DownloadLink from '../models/downloadLink';
 import { logActivity } from '../utils/logger';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -79,7 +80,7 @@ router.get('/:token', async (req: Request, res: Response) => {
     }
 
     // Record the download access
-    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent') || 'unknown';
     
     await downloadLink.recordAccess(clientIP, userAgent);
@@ -134,9 +135,8 @@ router.get('/:token', async (req: Request, res: Response) => {
 });
 
 // Admin route to view download statistics
-router.get('/admin/stats', async (req: Request, res: Response) => {
+router.get('/admin/stats', requireAuth, async (req: Request, res: Response) => {
   try {
-    // This would need authentication middleware if we want to protect it
     const recentDownloads = await DownloadLink.find({})
       .sort({ createdAt: -1 })
       .limit(50)

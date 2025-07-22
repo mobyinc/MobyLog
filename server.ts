@@ -26,6 +26,7 @@ const mongoUri = process.env.MONGO_URI ?? null;
 const app = express();
 
 // Middleware setup
+app.set('trust proxy', true); // Enable proper IP extraction behind proxies
 app.use(cors({ 
   allowedHeaders: "Content-Type,Authorization",
   credentials: true 

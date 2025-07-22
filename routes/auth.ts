@@ -180,7 +180,7 @@ router.post('/change-password', requireAuth, [
       await logActivity({
         adminId: admin._id,
         adminEmail: admin.email,
-        action: 'PASSWORD_CHANGED',
+        action: 'PASSWORD_CHANGE_FAILED',
         details: 'Failed to change password - incorrect current password',
         success: false,
         req

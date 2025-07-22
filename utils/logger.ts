@@ -30,15 +30,6 @@ export async function logActivity(options: LogOptions): Promise<IActivityLog> {
 }
 
 function getClientIp(req: Request): string {
-  // Check for various headers that might contain the real IP
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    // x-forwarded-for may contain multiple IPs, take the first one
-    return (forwarded as string).split(',')[0].trim();
-  }
-  
-  return req.headers['x-real-ip'] as string || 
-         req.connection.remoteAddress || 
-         req.socket.remoteAddress || 
-         '';
+  // With trust proxy enabled, req.ip handles proxy headers automatically
+  return req.ip || 'unknown';
 }

@@ -17,46 +17,97 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderAdmins() {
         const tbody = document.querySelector('#adminsTable tbody');
         
+        // Clear existing content
+        tbody.innerHTML = '';
+        
         if (admins.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No admins found</td></tr>';
+            const row = tbody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 5;
+            cell.className = 'text-center py-4';
+            cell.textContent = 'No admins found';
             return;
         }
 
-        tbody.innerHTML = admins.map(admin => 
-            '<tr>' +
-                '<td>' +
-                    admin.email +
-                    (admin._id === currentAdminId ? '<span class="badge bg-primary ms-2">You</span>' : '') +
-                '</td>' +
-                '<td>' +
-                    (admin.isActive 
-                        ? '<span class="badge bg-success">Active</span>' 
-                        : '<span class="badge bg-danger">Inactive</span>') +
-                    (admin.isLocked 
-                        ? '<span class="badge bg-warning ms-1">Locked</span>' 
-                        : '') +
-                '</td>' +
-                '<td>' + (admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never') + '</td>' +
-                '<td>' + new Date(admin.createdAt).toLocaleDateString() + '</td>' +
-                '<td class="text-end">' +
-                    (admin._id === currentAdminId 
-                        ? '<button class="btn btn-sm btn-outline-primary" onclick="showChangePassword()"><i class="bi bi-key"></i> Change Password</button>'
-                        : '<div class="btn-group btn-group-sm">' +
-                            '<button class="btn btn-outline-warning" onclick="resetPassword(\'' + admin._id + '\')">' +
-                                '<i class="bi bi-key"></i> Reset' +
-                            '</button>' +
-                            (admin.isLocked 
-                                ? '<button class="btn btn-outline-info" onclick="unlockAccount(\'' + admin._id + '\')">' +
-                                    '<i class="bi bi-unlock"></i> Unlock' +
-                                '</button>'
-                                : '') +
-                            '<button class="btn btn-outline-danger" onclick="removeAdmin(\'' + admin._id + '\')">' +
-                                '<i class="bi bi-trash"></i> Remove' +
-                            '</button>' +
-                        '</div>') +
-                '</td>' +
-            '</tr>'
-        ).join('');
+        admins.forEach(admin => {
+            const row = tbody.insertRow();
+            
+            // Email cell with "You" badge
+            const emailCell = row.insertCell();
+            emailCell.textContent = admin.email; // Safe text content
+            
+            if (admin._id === currentAdminId) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary ms-2';
+                badge.textContent = 'You';
+                emailCell.appendChild(badge);
+            }
+            
+            // Status cell with badges
+            const statusCell = row.insertCell();
+            
+            const activeBadge = document.createElement('span');
+            activeBadge.className = admin.isActive ? 'badge bg-success' : 'badge bg-danger';
+            activeBadge.textContent = admin.isActive ? 'Active' : 'Inactive';
+            statusCell.appendChild(activeBadge);
+            
+            if (admin.isLocked) {
+                const lockedBadge = document.createElement('span');
+                lockedBadge.className = 'badge bg-warning ms-1';
+                lockedBadge.textContent = 'Locked';
+                statusCell.appendChild(lockedBadge);
+            }
+            
+            // Last Login cell
+            const loginCell = row.insertCell();
+            loginCell.textContent = admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never';
+            
+            // Created cell
+            const createdCell = row.insertCell();
+            createdCell.textContent = new Date(admin.createdAt).toLocaleDateString();
+            
+            // Actions cell
+            const actionsCell = row.insertCell();
+            actionsCell.className = 'text-end';
+            
+            if (admin._id === currentAdminId) {
+                // Change password button for current user
+                const changePasswordBtn = document.createElement('button');
+                changePasswordBtn.className = 'btn btn-sm btn-outline-primary';
+                changePasswordBtn.innerHTML = '<i class="bi bi-key"></i> Change Password';
+                changePasswordBtn.addEventListener('click', () => showChangePassword());
+                actionsCell.appendChild(changePasswordBtn);
+            } else {
+                // Button group for other admins
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group btn-group-sm';
+                
+                // Reset password button
+                const resetBtn = document.createElement('button');
+                resetBtn.className = 'btn btn-outline-warning';
+                resetBtn.innerHTML = '<i class="bi bi-key"></i> Reset';
+                resetBtn.addEventListener('click', () => resetPassword(admin._id));
+                btnGroup.appendChild(resetBtn);
+                
+                // Unlock button (only if locked)
+                if (admin.isLocked) {
+                    const unlockBtn = document.createElement('button');
+                    unlockBtn.className = 'btn btn-outline-info';
+                    unlockBtn.innerHTML = '<i class="bi bi-unlock"></i> Unlock';
+                    unlockBtn.addEventListener('click', () => unlockAccount(admin._id));
+                    btnGroup.appendChild(unlockBtn);
+                }
+                
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-outline-danger';
+                removeBtn.innerHTML = '<i class="bi bi-trash"></i> Remove';
+                removeBtn.addEventListener('click', () => removeAdmin(admin._id));
+                btnGroup.appendChild(removeBtn);
+                
+                actionsCell.appendChild(btnGroup);
+            }
+        });
     }
 
     // Invite Admin

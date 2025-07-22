@@ -11,7 +11,11 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable must be set');
+}
 
 export interface JwtPayload {
   adminId: string;
@@ -24,7 +28,7 @@ export function generateToken(admin: IAdmin): string {
     email: admin.email
   };
   
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign(payload, JWT_SECRET!, { expiresIn: '24h' });
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -44,7 +48,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET!) as JwtPayload;
     
     // Get admin from database
     const admin = await Admin.findById(decoded.adminId);
