@@ -149,14 +149,6 @@ app.get("/events", requireAuth, async (req, res) => {
   });
 });
 
-// Redirect unauthenticated users to login
-app.use((req, res, next) => {
-  if (!req.session?.adminId) {
-    return res.redirect('/admin/login');
-  }
-  next();
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

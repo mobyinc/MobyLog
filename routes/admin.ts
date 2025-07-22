@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import Admin from '../models/admin';
 import ActivityLog from '../models/activityLog';
+import Event from '../models/event';
 import { requireAuth } from '../middleware/auth';
 import { generateRandomPassword } from '../utils/auth';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordSetupEmail } from '../utils/email';
@@ -247,6 +248,33 @@ router.get('/activity-logs', requireAuth, async (req: Request, res: Response) =>
     });
   } catch (error) {
     console.error('Get activity logs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Dashboard statistics
+router.get('/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    // Get total event count
+    const eventCount = await Event.countDocuments();
+    
+    // Get active admin count
+    const activeAdminCount = await Admin.countDocuments({ isActive: true });
+    
+    // Get today's activity count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayActivityCount = await ActivityLog.countDocuments({
+      createdAt: { $gte: today }
+    });
+
+    res.json({
+      eventCount,
+      activeAdminCount,
+      todayActivityCount
+    });
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

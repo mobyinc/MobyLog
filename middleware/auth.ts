@@ -33,6 +33,21 @@ export function generateToken(admin: IAdmin): string {
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
+    // Helper function to determine if this is a browser request
+    const isBrowserRequest = (req: Request): boolean => {
+      const accept = req.headers.accept || '';
+      return accept.includes('text/html');
+    };
+
+    // Helper function to handle auth failures
+    const handleAuthFailure = (statusCode: number, message: string) => {
+      if (isBrowserRequest(req)) {
+        return res.redirect('/admin/login');
+      } else {
+        return res.status(statusCode).json({ error: message });
+      }
+    };
+
     // Check for token in session or Authorization header
     let token = req.session?.token;
     
@@ -44,7 +59,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     if (!token) {
-      return res.status(401).json({ error: 'No authentication token provided' });
+      return handleAuthFailure(401, 'No authentication token provided');
     }
 
     // Verify token
@@ -54,29 +69,43 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const admin = await Admin.findById(decoded.adminId);
     
     if (!admin) {
-      return res.status(401).json({ error: 'Invalid authentication token' });
+      return handleAuthFailure(401, 'Invalid authentication token');
     }
 
     if (!admin.isActive) {
-      return res.status(403).json({ error: 'Account is deactivated' });
+      return handleAuthFailure(403, 'Account is deactivated');
     }
 
     if (admin.isAccountLocked()) {
-      return res.status(403).json({ error: 'Account is locked due to too many failed login attempts' });
+      return handleAuthFailure(403, 'Account is locked due to too many failed login attempts');
     }
 
     // Attach admin to request
     req.admin = admin;
     next();
   } catch (error) {
+    const isBrowser = req.headers.accept?.includes('text/html');
+    
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ error: 'Token expired' });
+      if (isBrowser) {
+        return res.redirect('/admin/login');
+      } else {
+        return res.status(401).json({ error: 'Token expired' });
+      }
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ error: 'Invalid token' });
+      if (isBrowser) {
+        return res.redirect('/admin/login');
+      } else {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
     }
     
     console.error('Auth middleware error:', error);
-    return res.status(500).json({ error: 'Authentication error' });
+    if (isBrowser) {
+      return res.redirect('/admin/login');
+    } else {
+      return res.status(500).json({ error: 'Authentication error' });
+    }
   }
 }

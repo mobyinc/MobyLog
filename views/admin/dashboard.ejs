@@ -88,24 +88,20 @@
         // Load stats on page load
         async function loadStats() {
             try {
-                // Get admin count
-                const adminResponse = await fetch('/admin/admins');
-                if (adminResponse.ok) {
-                    const admins = await adminResponse.json();
-                    document.getElementById('adminCount').textContent = admins.filter(a => a.isActive).length;
-                }
-                
-                // Get activity count for today
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const activityResponse = await fetch('/admin/admins/activity-logs?limit=1000');
-                if (activityResponse.ok) {
-                    const data = await activityResponse.json();
-                    const todayCount = data.logs.filter(log => new Date(log.createdAt) >= today).length;
-                    document.getElementById('recentActivity').textContent = todayCount;
+                // Get all stats from the new endpoint
+                const statsResponse = await fetch('/admin/admins/stats');
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    document.getElementById('adminCount').textContent = stats.activeAdminCount;
+                    document.getElementById('eventCount').textContent = stats.eventCount;
+                    document.getElementById('recentActivity').textContent = stats.todayActivityCount;
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
+                // Fallback: show error message instead of "-"
+                document.getElementById('adminCount').textContent = 'Error';
+                document.getElementById('eventCount').textContent = 'Error';
+                document.getElementById('recentActivity').textContent = 'Error';
             }
         }
         
