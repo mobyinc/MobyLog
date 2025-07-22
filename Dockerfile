@@ -23,6 +23,10 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Copy views and public directories to match the compiled structure
+RUN cp -r views lib/views
+RUN cp -r public lib/public
+
 # Clean up dev dependencies after build
 RUN npm ci --only=production --no-audit --no-fund
 
