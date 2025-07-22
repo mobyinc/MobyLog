@@ -1,0 +1,197 @@
+<%- include('../layout', { 
+    title: 'Activity Logs - MobyLog', 
+    showNavbar: true, 
+    admin: admin,
+    body: `
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-clock-history me-2"></i>Activity Logs</h2>
+            <div class="d-flex gap-2">
+                <select class="form-select" id="actionFilter" style="width: auto;">
+                    <option value="">All Actions</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGIN_FAILED">Failed Login</option>
+                    <option value="LOGOUT">Logout</option>
+                    <option value="ADMIN_INVITED">Admin Invited</option>
+                    <option value="ADMIN_REMOVED">Admin Removed</option>
+                    <option value="PASSWORD_RESET">Password Reset</option>
+                    <option value="PASSWORD_CHANGED">Password Changed</option>
+                    <option value="EXPORT_REQUESTED">Export Requested</option>
+                    <option value="ACCOUNT_LOCKED">Account Locked</option>
+                    <option value="ACCOUNT_UNLOCKED">Account Unlocked</option>
+                </select>
+                <button class="btn btn-secondary" onclick="loadLogs()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 activity-log" id="logsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>Target</th>
+                                <th>IP Address</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+                <span class="text-muted">Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> entries</span>
+            </div>
+            <nav>
+                <ul class="pagination mb-0" id="pagination">
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const limit = 50;
+        let totalLogs = 0;
+
+        async function loadLogs(page = 1) {
+            currentPage = page;
+            const action = document.getElementById('actionFilter').value;
+            const offset = (page - 1) * limit;
+            
+            try {
+                const params = new URLSearchParams({
+                    limit: limit.toString(),
+                    offset: offset.toString()
+                });
+                
+                if (action) {
+                    params.append('action', action);
+                }
+                
+                const response = await fetch(\`/admin/admins/activity-logs?\${params}\`);
+                if (response.ok) {
+                    const data = await response.json();
+                    totalLogs = data.total;
+                    renderLogs(data.logs);
+                    renderPagination();
+                }
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.querySelector('#logsTable tbody');
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No activity logs found</td></tr>';
+                document.getElementById('showingCount').textContent = '0';
+                return;
+            }
+
+            const start = (currentPage - 1) * limit + 1;
+            const end = Math.min(currentPage * limit, totalLogs);
+            document.getElementById('showingCount').textContent = \`\${start}-\${end}\`;
+            document.getElementById('totalCount').textContent = totalLogs;
+
+            tbody.innerHTML = logs.map(log => {
+                const time = new Date(log.createdAt).toLocaleString();
+                const adminEmail = log.adminId?.email || log.adminEmail || 'Unknown';
+                const targetInfo = log.targetAdminEmail ? \`<small class="text-muted">\${log.targetAdminEmail}</small>\` : '-';
+                const ipAddress = log.ipAddress || '-';
+                const statusBadge = log.success 
+                    ? '<span class="badge bg-success">Success</span>' 
+                    : '<span class="badge bg-danger">Failed</span>';
+                
+                const actionClass = {
+                    'LOGIN': 'text-success',
+                    'LOGIN_FAILED': 'text-danger',
+                    'LOGOUT': 'text-info',
+                    'ADMIN_INVITED': 'text-primary',
+                    'ADMIN_REMOVED': 'text-warning',
+                    'PASSWORD_RESET': 'text-warning',
+                    'PASSWORD_CHANGED': 'text-info',
+                    'EXPORT_REQUESTED': 'text-primary',
+                    'ACCOUNT_LOCKED': 'text-danger',
+                    'ACCOUNT_UNLOCKED': 'text-success'
+                }[log.action] || '';
+                
+                return \`
+                    <tr>
+                        <td>\${time}</td>
+                        <td>\${adminEmail}</td>
+                        <td><span class="\${actionClass}">\${log.action.replace(/_/g, ' ')}</span></td>
+                        <td>\${log.details}</td>
+                        <td>\${targetInfo}</td>
+                        <td><small>\${ipAddress}</small></td>
+                        <td>\${statusBadge}</td>
+                    </tr>
+                \`;
+            }).join('');
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(totalLogs / limit);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // Previous button
+            html += \`
+                <li class="page-item \${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadLogs(\${currentPage - 1}); return false;">Previous</a>
+                </li>
+            \`;
+            
+            // Page numbers
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                html += \`
+                    <li class="page-item \${currentPage === i ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadLogs(\${i}); return false;">\${i}</a>
+                    </li>
+                \`;
+            }
+            
+            // Next button
+            html += \`
+                <li class="page-item \${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadLogs(\${currentPage + 1}); return false;">Next</a>
+                </li>
+            \`;
+            
+            pagination.innerHTML = html;
+        }
+
+        // Filter change handler
+        document.getElementById('actionFilter').addEventListener('change', () => {
+            loadLogs(1);
+        });
+
+        // Load logs on page load
+        loadLogs();
+    </script>
+    `
+}) %>
