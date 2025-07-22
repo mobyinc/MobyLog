@@ -70,6 +70,9 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
                 <i class="bi bi-box-seam"></i> MobyLog
+                <% if (typeof productName !== 'undefined' && productName !== 'MobyLog') { %>
+                    <small class="text-muted ms-2">(<%= productName %>)</small>
+                <% } %>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

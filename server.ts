@@ -73,12 +73,17 @@ app.use('/auth', authRoutes);
 
 // Admin login page (public)
 app.get('/admin/login', (req, res) => {
-  res.render('admin/login');
+  res.render('admin/login', { 
+    productName: process.env.PRODUCT_NAME || 'MobyLog' 
+  });
 });
 
 // Root route - Welcome dashboard (protected)
 app.get('/', requireAuth, (req, res) => {
-  res.render('admin/dashboard', { admin: req.admin });
+  res.render('admin/dashboard', { 
+    admin: req.admin, 
+    productName: process.env.PRODUCT_NAME || 'MobyLog' 
+  });
 });
 
 // Protected routes
@@ -90,7 +95,10 @@ app.use('/download', downloadRoutes);
 
 // Admin management page
 app.get('/admin/manage', requireAuth, (req, res) => {
-  res.render('admin/admins', { admin: req.admin });
+  res.render('admin/admins', { 
+    admin: req.admin, 
+    productName: process.env.PRODUCT_NAME || 'MobyLog' 
+  });
 });
 
 // Activity logs page
