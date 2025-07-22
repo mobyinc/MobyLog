@@ -13,11 +13,13 @@ import path from 'path';
 import { configureSession } from './config/session';
 import { seedInitialAdmin } from './utils/seedAdmin';
 import { requireAuth } from './middleware/auth';
+import { scheduleCleanup } from './utils/cleanup';
 
 // Import routes
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import exportRoutes from './routes/export';
+import downloadRoutes from './routes/download';
 
 const port = process.env.PORT ?? 4242;
 const mongoUri = process.env.MONGO_URI ?? null;
@@ -81,6 +83,9 @@ app.get('/', requireAuth, (req, res) => {
 // Protected routes
 app.use('/export', requireAuth, exportRoutes);
 app.use('/admin/admins', requireAuth, adminRoutes);
+
+// Public download routes (token-based security)
+app.use('/download', downloadRoutes);
 
 // Admin management page
 app.get('/admin/manage', requireAuth, (req, res) => {
@@ -159,4 +164,5 @@ app.use((req, res) => {
 // Listen
 app.listen(port, () => {
   console.log(`server is listening on port ${port}`);
+  scheduleCleanup(); // Start the cleanup scheduler
 });

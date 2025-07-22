@@ -3,7 +3,7 @@ import { Request } from 'express';
 import mongoose from 'mongoose';
 
 interface LogOptions {
-  adminId: mongoose.Types.ObjectId;
+  adminId: mongoose.Types.ObjectId | null;
   adminEmail: string;
   action: string;
   details: string;

@@ -67,12 +67,22 @@ export async function sendExportEmail(email: string, downloadUrl: string): Promi
   await sendEmail({
     to: email,
     subject: 'Your MobyLog Export is Ready',
-    text: `Your MobyLog data export is ready.\n\nYou can download it here: ${downloadUrl}\n\nThis link will expire in 24 hours.`,
+    text: `Your MobyLog data export is ready.\n\nYou can download it here: ${downloadUrl}\n\nThis secure link will expire in 24 hours and access is tracked for security purposes.`,
     html: `
       <h2>Your Export is Ready</h2>
-      <p>Your MobyLog data export has been generated.</p>
-      <p><a href="${downloadUrl}">Download Export</a></p>
-      <p><em>This link will expire in 24 hours.</em></p>
+      <p>Your MobyLog data export has been generated and is ready for download.</p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${downloadUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Download Export</a>
+      </div>
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h4 style="color: #6c757d; margin-top: 0;">Security Information:</h4>
+        <ul style="color: #6c757d; margin-bottom: 0;">
+          <li>This secure link will expire in 24 hours</li>
+          <li>Download access is tracked for security purposes</li>
+          <li>Do not share this link with unauthorized users</li>
+        </ul>
+      </div>
+      <p style="color: #6c757d; font-size: 0.9em;"><em>If you did not request this export, please contact your system administrator immediately.</em></p>
     `
   });
 }

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IActivityLog extends Document {
-  adminId: mongoose.Types.ObjectId;
+  adminId: mongoose.Types.ObjectId | null;
   adminEmail: string;
   action: string;
   details: string;
@@ -19,7 +19,7 @@ const ActivityLogSchema: Schema = new Schema(
     adminId: { 
       type: Schema.Types.ObjectId, 
       ref: 'Admin',
-      required: true,
+      required: false,
       index: true 
     },
     adminEmail: { 
@@ -41,7 +41,9 @@ const ActivityLogSchema: Schema = new Schema(
         'PASSWORD_CHANGED',
         'EXPORT_REQUESTED',
         'ACCOUNT_LOCKED',
-        'ACCOUNT_UNLOCKED'
+        'ACCOUNT_UNLOCKED',
+        'DOWNLOAD_ERROR',
+        'DOWNLOAD_SUCCESS'
       ]
     },
     details: { 
