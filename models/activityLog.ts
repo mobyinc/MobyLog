@@ -47,7 +47,11 @@ const ActivityLogSchema: Schema = new Schema(
         'ACCOUNT_LOCKED',
         'ACCOUNT_UNLOCKED',
         'DOWNLOAD_ERROR',
-        'DOWNLOAD_SUCCESS'
+        'DOWNLOAD_SUCCESS',
+        'CLEANUP_EXPIRED_DOWNLOAD',
+        'CLEANUP_ERROR',
+        'CLEANUP_FAILED',
+        'CLEANUP_ORPHANED_FILE'
       ]
     },
     details: { 
