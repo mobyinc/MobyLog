@@ -36,6 +36,7 @@ const ActivityLogSchema: Schema = new Schema(
         'LOGIN_FAILED',
         'LOGOUT',
         'ADMIN_INVITED',
+        'ADMIN_INVITE_RESENT',
         'ADMIN_REMOVED',
         'PASSWORD_RESET',
         'PASSWORD_RESET_INITIATED',
