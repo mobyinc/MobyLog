@@ -88,6 +88,60 @@ router.post('/invite', requireAuth, [
   }
 });
 
+// Re-send admin invite
+router.post('/resend-invite/:adminId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { adminId } = req.params;
+    const resendingAdmin = req.admin!;
+
+    // Find the admin
+    const targetAdmin = await Admin.findById(adminId);
+    if (!targetAdmin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    // Check if the admin has already set up their password
+    if (!targetAdmin.needsPasswordSetup) {
+      return res.status(400).json({ error: 'This admin has already set up their password' });
+    }
+
+    // Generate new password setup token
+    const setupToken = targetAdmin.generatePasswordSetupToken();
+    await targetAdmin.save();
+
+    // Send password setup email
+    try {
+      await sendPasswordSetupEmail(targetAdmin.email, setupToken, true);
+    } catch (emailError) {
+      console.error('Failed to send password setup email:', emailError);
+      return res.status(500).json({ error: 'Failed to send invitation email. Please try again.' });
+    }
+
+    // Log activity
+    await logActivity({
+      adminId: resendingAdmin._id,
+      adminEmail: resendingAdmin.email,
+      action: 'ADMIN_INVITE_RESENT',
+      details: `Re-sent admin invite to: ${targetAdmin.email}`,
+      targetAdminId: targetAdmin._id,
+      targetAdminEmail: targetAdmin.email,
+      success: true,
+      req
+    });
+
+    res.json({
+      message: 'Admin invitation re-sent successfully',
+      admin: {
+        id: targetAdmin._id,
+        email: targetAdmin.email
+      }
+    });
+  } catch (error) {
+    console.error('Resend invite error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Remove admin
 router.delete('/:adminId', requireAuth, async (req: Request, res: Response) => {
   try {

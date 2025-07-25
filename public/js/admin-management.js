@@ -74,13 +74,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const btnGroup = document.createElement('div');
                 btnGroup.className = 'btn-group btn-group-sm';
                 
-                // Reset password button
-                const resetBtn = document.createElement('button');
-                resetBtn.className = 'btn btn-outline-warning';
-                resetBtn.innerHTML = '<i class="bi bi-key"></i> Reset';
-                resetBtn.title = 'Send password reset link';
-                resetBtn.addEventListener('click', () => resetPassword(admin._id));
-                btnGroup.appendChild(resetBtn);
+                // Re-send invite button (only if setup is pending)
+                if (admin.needsPasswordSetup) {
+                    const resendBtn = document.createElement('button');
+                    resendBtn.className = 'btn btn-outline-warning';
+                    resendBtn.innerHTML = '<i class="bi bi-envelope"></i> Re-send Invite';
+                    resendBtn.title = 'Re-send invitation email';
+                    resendBtn.addEventListener('click', () => resendInvite(admin._id));
+                    btnGroup.appendChild(resendBtn);
+                } else {
+                    // Reset password button (only if setup is complete)
+                    const resetBtn = document.createElement('button');
+                    resetBtn.className = 'btn btn-outline-warning';
+                    resetBtn.innerHTML = '<i class="bi bi-key"></i> Reset';
+                    resetBtn.title = 'Send password reset link';
+                    resetBtn.addEventListener('click', () => resetPassword(admin._id));
+                    btnGroup.appendChild(resetBtn);
+                }
                 
                 // Unlock button (only if locked)
                 if (admin.isLocked) {
@@ -249,6 +259,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Re-send invite
+    window.resendInvite = async function(adminId) {
+        if (!confirm('Are you sure you want to re-send the invitation email to this admin?')) return;
+        
+        try {
+            const response = await fetch('/admin/admins/resend-invite/' + adminId, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px;';
+                alert.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-check-circle-fill me-2 mt-1"></i>
+                        <div>
+                            <strong>Invitation Re-sent!</strong>
+                            <p class="mb-0 small">A secure password setup link has been re-sent to the admin's email. The link expires in 24 hours.</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                document.body.appendChild(alert);
+                
+                // Auto-remove after 6 seconds
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 6000);
+                
+                loadAdmins();
+            } else {
+                const data = await response.json();
+                alert('Failed to re-send invitation: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Failed to re-send invitation');
+        }
+    };
+
+    // Unlock Account
     window.unlockAccount = async function(adminId) {
         if (!confirm('Are you sure you want to unlock this account?')) return;
         
