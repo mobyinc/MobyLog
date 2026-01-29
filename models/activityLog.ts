@@ -47,6 +47,7 @@ const ActivityLogSchema: Schema = new Schema(
         'ACCOUNT_LOCKED',
         'ACCOUNT_UNLOCKED',
         'DOWNLOAD_ERROR',
+        'DOWNLOAD_FAILED',
         'DOWNLOAD_SUCCESS',
         'CLEANUP_EXPIRED_DOWNLOAD',
         'CLEANUP_ERROR',

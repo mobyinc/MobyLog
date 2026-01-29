@@ -161,7 +161,7 @@ async function cleanupOrphanedFiles(stats: CleanupStats): Promise<void> {
  * Schedule automatic cleanup to run periodically
  */
 export function scheduleCleanup(): void {
-  const cleanupInterval = 6 * 60 * 60 * 1000; // Run every 6 hours
+  const cleanupInterval = 48 * 60 * 60 * 1000; // Run every 48 hours
 
   setInterval(async () => {
     try {
@@ -172,7 +172,7 @@ export function scheduleCleanup(): void {
     }
   }, cleanupInterval);
 
-  console.log('Cleanup scheduler started - will run every 6 hours');
+  console.log('Cleanup scheduler started - will run every 48 hours');
 }
 
 /**

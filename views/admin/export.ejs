@@ -32,6 +32,21 @@ if (message) {
                         
                         <form method="POST" action="/export">
                             <div class="mb-4">
+                                <label for="range" class="form-label">Date Range</label>
+                                <select class="form-select form-select-lg" id="range" name="range">
+                                    <option value="last_hour" ${range === 'last_hour' ? 'selected' : ''}>Last hour</option>
+                                    <option value="today" ${range === 'today' ? 'selected' : ''}>Today</option>
+                                    <option value="this_week" ${range === 'this_week' ? 'selected' : ''}>This week</option>
+                                    <option value="this_month" ${range === 'this_month' ? 'selected' : ''}>This month</option>
+                                    <option value="last_month" ${range === 'last_month' ? 'selected' : ''}>Last month</option>
+                                    <option value="all" ${range === 'all' ? 'selected' : ''}>All time</option>
+                                </select>
+                                <div class="form-text">
+                                    The export will include events created within this range.
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
                                 <label for="email" class="form-label">Email Address</label>
                                 <input type="email" 
                                        class="form-control form-control-lg" 
