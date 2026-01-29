@@ -79,7 +79,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 router.post('/', requireAuth, [
   body('email').isEmail().normalizeEmail(),
   body('range').optional().isIn(EXPORT_RANGES),
-  body('fromDate').optional().isISO8601({ strict: true })
+  body('fromDate').optional({ checkFalsy: true }).isISO8601({ strict: true })
 ], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
