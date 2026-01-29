@@ -12,10 +12,10 @@ import { logActivity } from '../utils/logger';
 
 const router = Router();
 
-const EXPORT_RANGES = ['last_hour', 'today', 'this_week', 'this_month', 'last_month', 'all'] as const;
+const EXPORT_RANGES = ['last_hour', 'today', 'this_week', 'this_month', 'last_month', 'custom', 'all'] as const;
 type ExportRange = typeof EXPORT_RANGES[number];
 
-const getRangeDetails = (range: ExportRange) => {
+const getRangeDetails = (range: ExportRange, fromDate?: string) => {
   const now = new Date();
 
   switch (range) {
@@ -45,6 +45,13 @@ const getRangeDetails = (range: ExportRange) => {
       const end = new Date(now.getFullYear(), now.getMonth(), 1);
       return { label: 'last month', query: { createdAt: { $gte: start, $lt: end } } };
     }
+    case 'custom': {
+      if (!fromDate) {
+        return { label: 'custom range', query: {} };
+      }
+      const start = new Date(`${fromDate}T00:00:00`);
+      return { label: `since ${fromDate}`, query: { createdAt: { $gte: start, $lt: now } } };
+    }
     case 'all':
     default:
       return { label: 'all time', query: {} };
@@ -62,6 +69,7 @@ const getSafeRange = (range?: string): ExportRange => {
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   res.render('admin/export', {
     message: '',
+    fromDate: '',
     range: 'all',
     admin: req.admin
   });
@@ -70,14 +78,26 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 // Handle export request
 router.post('/', requireAuth, [
   body('email').isEmail().normalizeEmail(),
-  body('range').optional().isIn(EXPORT_RANGES)
+  body('range').optional().isIn(EXPORT_RANGES),
+  body('fromDate').optional().isISO8601({ strict: true })
 ], async (req: Request, res: Response) => {
   try {
     const errors = validationResult(req);
     const range = getSafeRange(req.body.range);
+    const fromDate = typeof req.body.fromDate === 'string' ? req.body.fromDate : '';
+    const customRangeMissingDate = range === 'custom' && !fromDate;
     if (!errors.isEmpty()) {
       return res.render('admin/export', {
         message: 'Please provide a valid email address and date range',
+        fromDate,
+        range,
+        admin: req.admin
+      });
+    }
+    if (customRangeMissingDate) {
+      return res.render('admin/export', {
+        message: 'Please choose a from date for the custom range',
+        fromDate,
         range,
         admin: req.admin
       });
@@ -85,7 +105,7 @@ router.post('/', requireAuth, [
 
     const { email } = req.body;
     const admin = req.admin!;
-    const { label: rangeLabel } = getRangeDetails(range);
+    const { label: rangeLabel } = getRangeDetails(range, fromDate);
 
     // Log export request
     await logActivity({
@@ -98,10 +118,11 @@ router.post('/', requireAuth, [
     });
 
     // Start export generation in background
-    generateReport(email, admin.email, admin._id, admin.email, range);
+    generateReport(email, admin.email, admin._id, admin.email, range, fromDate);
 
     res.render('admin/export', {
       message: `The ${rangeLabel} report will be sent to ${email} in the next few minutes.`,
+      fromDate,
       range,
       admin: req.admin
     });
@@ -109,6 +130,7 @@ router.post('/', requireAuth, [
     console.error('Export error:', error);
     res.render('admin/export', {
       message: 'An error occurred while processing your request',
+      fromDate: '',
       range: 'all',
       admin: req.admin
     });
@@ -116,7 +138,7 @@ router.post('/', requireAuth, [
 });
 
 // Generate Report
-const generateReport = async (recipientEmail: string, adminEmail: string, adminId: string, requestingAdminEmail: string, range: ExportRange) => {
+const generateReport = async (recipientEmail: string, adminEmail: string, adminId: string, requestingAdminEmail: string, range: ExportRange, fromDate?: string) => {
   try {
     if (!fs.existsSync('tmp')){
       fs.mkdirSync('tmp');
@@ -129,7 +151,7 @@ const generateReport = async (recipientEmail: string, adminEmail: string, adminI
     const path = `${storageRoot}/tmp/${filename}`;
     const ws = fs.createWriteStream(path);
     
-    const { query } = getRangeDetails(range);
+    const { query } = getRangeDetails(range, fromDate);
     const stream = (Event as any).findAndStreamCsv(query);
     
     stream.pipe(ws).on('finish', () => {

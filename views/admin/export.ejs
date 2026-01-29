@@ -39,10 +39,23 @@ if (message) {
                                     <option value="this_week" ${range === 'this_week' ? 'selected' : ''}>This week</option>
                                     <option value="this_month" ${range === 'this_month' ? 'selected' : ''}>This month</option>
                                     <option value="last_month" ${range === 'last_month' ? 'selected' : ''}>Last month</option>
+                                    <option value="custom" ${range === 'custom' ? 'selected' : ''}>Custom</option>
                                     <option value="all" ${range === 'all' ? 'selected' : ''}>All time</option>
                                 </select>
                                 <div class="form-text">
                                     The export will include events created within this range.
+                                </div>
+                            </div>
+
+                            <div class="mb-4${range === 'custom' ? '' : ' d-none'}" id="fromDateContainer">
+                                <label for="fromDate" class="form-label">From Date</label>
+                                <input type="date"
+                                       class="form-control form-control-lg"
+                                       id="fromDate"
+                                       name="fromDate"
+                                       value="${fromDate || ''}">
+                                <div class="form-text">
+                                    Only events created on or after this date will be included.
                                 </div>
                             </div>
 
@@ -76,6 +89,29 @@ if (message) {
                                 <li>All export requests are logged for security purposes</li>
                             </ul>
                         </div>
+                        <script>
+                            (function () {
+                                const rangeSelect = document.getElementById('range');
+                                const fromDateContainer = document.getElementById('fromDateContainer');
+                                const fromDateInput = document.getElementById('fromDate');
+
+                                if (!rangeSelect || !fromDateContainer || !fromDateInput) {
+                                    return;
+                                }
+
+                                const toggleFromDate = () => {
+                                    const isCustom = rangeSelect.value === 'custom';
+                                    fromDateContainer.classList.toggle('d-none', !isCustom);
+                                    fromDateInput.required = isCustom;
+                                    if (!isCustom) {
+                                        fromDateInput.value = '';
+                                    }
+                                };
+
+                                toggleFromDate();
+                                rangeSelect.addEventListener('change', toggleFromDate);
+                            })();
+                        </script>
                     </div>
                 </div>
             </div>
